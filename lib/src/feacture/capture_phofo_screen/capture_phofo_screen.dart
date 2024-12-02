@@ -5,7 +5,6 @@ import 'package:EDS/src/ui/message.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
-
 class CapturePhotoScreen extends StatefulWidget {
   final UserModel user;
 
@@ -17,17 +16,25 @@ class CapturePhotoScreen extends StatefulWidget {
 
 class _CapturePhotoScreenState extends State<CapturePhotoScreen> {
   final ImagePicker _picker = ImagePicker();
-  List<XFile> _photos = [];
 
-  Future<void> _capturePhoto() async {
-    if (_photos.length >= 3) return; // Impede de tirar mais que 3 fotos
+  XFile? _docFront; // Foto da frente do BI
+  XFile? _docBack; // Foto do verso do BI
+
+  Future<void> _capturePhoto(String photoType) async {
+    // Impede de capturar mais de duas fotos
+    if ((_docFront != null && photoType == 'front') ||
+        (_docBack != null && photoType == 'back')) return;
 
     final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
     if (photo != null) {
       setState(() {
-        _photos.add(photo);
-        widget.user.fotos
-            .add(photo.path); // Adiciona foto à lista de fotos do usuário
+        if (photoType == 'front') {
+          _docFront = photo; // Atribui foto da frente
+          widget.user.docFront = photo.path; // Atualiza no modelo
+        } else if (photoType == 'back') {
+          _docBack = photo; // Atribui foto do verso
+          widget.user.docBack = photo.path; // Atualiza no modelo
+        }
       });
     }
   }
@@ -82,67 +89,226 @@ class _CapturePhotoScreenState extends State<CapturePhotoScreen> {
         ),
         backgroundColor: Colors.black,
         leading: IconButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-            icon: const Icon(
-              Icons.arrow_back_ios_new,
-              color: Colors.white,
-            )),
+          onPressed: () {
+            Navigator.of(context).pop();
+            setState(() {
+              widget.user.docFront = ''; // Limpa a foto da frente
+              widget.user.docBack = ''; // Limpa a foto do verso
+            });
+          },
+          icon: const Icon(
+            Icons.arrow_back_ios_new,
+            color: Colors.white,
+          ),
+        ),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(10),
         child: Stack(
+          alignment: Alignment.center,
           children: [
-            _photos.isEmpty
-                ? const Center(
-                    child: const Text(
-                      "Sem fotos capturadas",
-                      style:
-                          TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+            (_docFront == null && _docBack == null)
+                ? Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.warning_outlined,
+                          color: Colors.black,
+                          size: 50,
+                        ),
+                        Text(
+                          "Sem fotos capturadas",
+                          style: TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.bold),
+                        ),
+                      ],
                     ),
                   )
-                : ListView.builder(
-                  padding: const EdgeInsets.all(10),
-                  scrollDirection: Axis.vertical,
-                  itemCount: _photos.length,
-                  itemBuilder: (context, index) {
-                    return Container(
-                      margin: const EdgeInsets.symmetric(vertical: 10),
-                      decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(8),
-                          border:
-                              Border.all(color: Colors.black, width: 4)),
-                      height: 200,
-                      child: Image.file(
-                        File(_photos[index].path),
-                        fit: BoxFit.cover,
-                      ),
-                    );
-                  },
-                ),
+                : ListView(
+                    children: [
+                      if (_docFront != null)
+                        Column(
+                          children: [
+                             SizedBox(height: 10),
+                            Text(
+                              "FRENTE",
+                              softWrap: true,
+                              style: TextStyle(
+                                  fontSize: 14, fontWeight: FontWeight.bold),
+                            ),
+                            Container(
+                              margin: const EdgeInsets.symmetric(vertical: 10),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade200,
+                                borderRadius: BorderRadius.circular(14),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.2),
+                                    blurRadius: 5,
+                                    offset: Offset(0, 3),
+                                  ),
+                                ],
+                                border:
+                                    Border.all(color: Colors.black, width: 4),
+                              ),
+                              height: 200,
+                              child: Stack(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.file(
+                                      File(_docFront!.path),
+                                      fit: BoxFit.cover,
+                                      width: double.infinity,
+                                      height: double.infinity,
+                                    ),
+                                  ),
+                                   Positioned(
+                          top: 5,
+                          right: 5,
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _docFront = null; // Remove a foto atual
+                              });
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                    
+                                    SnackBar(
+                                      backgroundColor: Colors.green,
+                                      content: Text("Foto excluída com sucesso!", style: TextStyle(color: Colors.white),),
+                                    ),
+                                  );
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                              ),
+                              padding: const EdgeInsets.all(8),
+                              child: Icon(
+                                Icons.delete,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                            ),
+                          ),
+                        ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      if (_docBack != null)
+                        Column(
+                          children: [
+                            SizedBox(height: 10),
+                            Offstage(
+                              offstage: _docFront == null,
+                              child: Divider(color: Colors.grey.shade700,height: 5 )),
+                            SizedBox(height: 10),
+                            Text(
+                              "VERSO",
+                              softWrap: true,
+                              style: TextStyle(
+                                  fontSize: 14, fontWeight: FontWeight.bold),
+                            ),
+                            Container(
+                              margin: const EdgeInsets.symmetric(vertical: 10),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade200,
+                                borderRadius: BorderRadius.circular(14),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.2),
+                                    blurRadius: 5,
+                                    offset: Offset(0, 3),
+                                  ),
+                                ],
+                                border:
+                                    Border.all(color: Colors.black, width: 4),
+                              ),
+                              height: 200,
+                              child: Stack(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.file(
+                                      File(_docBack!.path),
+                                      fit: BoxFit.cover,
+                                      width: double.infinity,
+                                      height: double.infinity,
+                                    ),
+                                  ),
+                                   Positioned(
+                          top: 5,
+                          right: 5,
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _docBack = null; // Remove a foto atual
+                              });
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                    
+                                    SnackBar(
+                                      backgroundColor: Colors.green,
+                                      content: Text("Foto excluída com sucesso!", style: TextStyle(color: Colors.white),),
+                                    ),
+                                  );
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                              ),
+                              padding: const EdgeInsets.all(8),
+                              child: Icon(
+                                Icons.delete,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                            ),
+                          ),
+                        ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                    ],
+                  ),
             Positioned(
               bottom: 40,
               left: 20,
               right: 20,
               child: FloatingActionButton(
-                child: _photos.length < 2
+                child: _docFront == null || _docBack == null
                     ? const Text('CAPTURAR FOTO',
                         style: TextStyle(
                             color: Colors.white, fontWeight: FontWeight.bold))
-                    : const Text('AVANÇAR',
-                        style: TextStyle(
-                            color: Colors.white, fontWeight: FontWeight.bold)),
-                onPressed: _photos.length < 2
-                    ? _capturePhoto
+                    : Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.check, color: Colors.white),
+                          const SizedBox(width: 8),
+                          const Text('AVANÇAR',
+                              style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                onPressed: _docFront == null || _docBack == null
+                    ? () async {
+                        if (_docFront == null) {
+                          await _capturePhoto('front');
+                        } else if (_docBack == null) {
+                          await _capturePhoto('back');
+                        }
+                      }
                     : () async {
-                        bool? result;
-
-                        result = await showDialogConfirm();
+                        bool? result = await showDialogConfirm();
 
                         if (result ?? false) {
-                          print("Angola");
-
                           Navigator.push(
                             context,
                             MaterialPageRoute(

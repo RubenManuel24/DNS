@@ -1,9 +1,9 @@
 import 'package:EDS/src/feacture/tela_dados/tela_dados.dart';
 import 'package:EDS/src/model/user_model.dart';
+import 'package:EDS/src/ui/loader_animation.dart';
 import 'package:EDS/src/ui/message.dart';
 import 'package:flutter/material.dart';
 import 'package:qr_code_scanner/qr_code_scanner.dart';
-import 'package:torch_light/torch_light.dart';
 
 class HomeScreen extends StatefulWidget {
   @override
@@ -14,37 +14,26 @@ class _HomeScreenState extends State<HomeScreen> {
   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
   late QRViewController controller;
   bool isQRViewOpen = false;
+  bool isProcessing = false; // Controla o processamento
 
   @override
   void dispose() {
     controller.dispose();
-    _turnOffTorch();  // Garante que a lanterna será desligada ao sair da tela
     super.dispose();
-  }
-
-  Future<void> _turnOnTorch() async {
-    try {
-      await TorchLight.enableTorch();
-    } catch (e) {
-      print('Erro ao ligar a lanterna: $e');
-    }
-  }
-
-  Future<void> _turnOffTorch() async {
-    try {
-      await TorchLight.disableTorch();
-    } catch (e) {
-      print('Erro ao desligar a lanterna: $e');
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        
+        automaticallyImplyLeading: false,
         centerTitle: true,
         backgroundColor: Colors.black,
-        title: Text('LEITOR DE CÓDIGO QR DO B.I', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: Text(
+          'LEITOR DE CÓDIGO QR DO B.I',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
       ),
       body: Padding(
         padding: EdgeInsets.all(10),
@@ -87,7 +76,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       isQRViewOpen = false;
                     });
                     controller.pauseCamera();
-                    _turnOffTorch();
                   },
                   child: Icon(Icons.close, color: Colors.white),
                   backgroundColor: Colors.red,
@@ -105,20 +93,19 @@ class _HomeScreenState extends State<HomeScreen> {
                     setState(() {
                       isQRViewOpen = !isQRViewOpen;
                     });
-                    if (isQRViewOpen) {
-                      _turnOnTorch();  // Liga a lanterna ao abrir o QR scanner
-                    } else {
-                      _turnOffTorch();  // Desliga a lanterna ao fechar o scanner
-                    }
                   },
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(Icons.qr_code, color: Colors.white),
-                      SizedBox(width: 4,),
+                      SizedBox(width: 4),
                       Text(
                         "LER O CÓDIGO QR",
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
                     ],
                   ),
@@ -134,27 +121,52 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _onQRViewCreated(QRViewController controller) {
     this.controller = controller;
-    bool isProcessing = false;
 
-    controller.scannedDataStream.listen((scanData) {
+    controller.scannedDataStream.listen((scanData) async {
       final data = scanData.code;
+
       if (data != null && !isProcessing) {
-        isProcessing = true;
+        setState(() {
+          isProcessing = true; // Bloqueia novos processamentos
+        });
+
+        // Exibe o Loader
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) {
+            return const LoaderAnimation();
+          },
+        );
+
         try {
-          print("Data :::::::::::::::::: $data");
+          // Simulação de um delay para processamento (opcional)
+          await Future.delayed(const Duration(seconds: 2));
+
+          // Processa os dados do QR Code
           UserModel user = UserModel.fromQR(data);
-          Navigator.push(
+
+          // Fecha o Loader antes de navegar
+          if (Navigator.canPop(context)) Navigator.pop(context);
+
+          // Navega para a tela de dados
+          await Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => TelaDados(user: user)),
-          ).then((_) {
-            isProcessing = false; // Reseta o flag após retorno
-          });
-          Message.showSucess("Código QR do BI lido com sucesso!", context);
-          isProcessing = false;
+          );
+
+          
         } catch (e) {
-          isProcessing = false;
-           Message.showErro("Erro ao processar QR: Dados inválidos!", context);
-      
+          // Fecha o Loader em caso de erro
+          if (Navigator.canPop(context)) Navigator.pop(context);
+
+          // Exibe a mensagem de erro
+          Message.showErro("Erro ao processar QR: Dados inválidos!", context);
+        } finally {
+          // Libera para novo processamento
+          setState(() {
+            isProcessing = false;
+          });
         }
       }
     });

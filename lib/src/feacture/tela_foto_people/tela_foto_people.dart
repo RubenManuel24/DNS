@@ -24,7 +24,7 @@ class _TelaFotoPeopleState extends State<TelaFotoPeople> {
     if (photo != null) {
       setState(() {
         _photos = photo; // Corrigido o operador de atribuição
-        widget.user.fotos.add(photo.path);
+        widget.user.personFotos = photo.path;
       });
     }
   }
@@ -89,33 +89,88 @@ class _TelaFotoPeopleState extends State<TelaFotoPeople> {
         ),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(5.0),
+        padding: const EdgeInsets.all(10),
         child: Stack(
+          alignment: Alignment.center,
           children: [
+            Positioned(
+              top: 40,
+              child: Text(
+                "FOTO MEIO CORPO DO RESPONSÁVEL DO B.I",
+                softWrap: true,
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              ),
+            ),
             _photos == null
                 ? const Center(
-                    child: Text(
-                      "Sem foto capturada",
-                      style:
-                          TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.warning_outlined,
+                          color: Colors.black,
+                          size: 50,
+                        ),
+                        Text(
+                          "Sem foto capturada",
+                          style: TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.bold),
+                        ),
+                      ],
                     ),
                   )
                 : Center(
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(vertical: 10),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.black, width: 4),
-                      ),
-                      height: 400,
-                      child: Column(
-                        children: [
-                          Image.file(
-                            File(_photos!.path),
-                            fit: BoxFit.cover,
+                    child: Stack(
+                      children: [
+                        Container(
+                          margin: const EdgeInsets.symmetric(vertical: 10),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(15),
+                            border: Border.all(color: Colors.black, width: 4),
                           ),
-                        ],
-                      ),
+                          height: 400,
+                          width: 400,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(5),
+                            child: Image.file(
+                              File(_photos!.path),
+                              fit: BoxFit.cover,
+                              height: 400,
+                              width: 400,
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          top: 20,
+                          right: 10,
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _photos = null; // Remove a foto atual
+                              });
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                    
+                                    SnackBar(
+                                      backgroundColor: Colors.green,
+                                      content: Text("Foto excluída com sucesso!", style: TextStyle(color: Colors.white),),
+                                    ),
+                                  );
+                            },
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.red,
+                                shape: BoxShape.circle,
+                              ),
+                              padding: const EdgeInsets.all(8),
+                              child: Icon(
+                                Icons.delete,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
             Positioned(
@@ -133,7 +188,7 @@ class _TelaFotoPeopleState extends State<TelaFotoPeople> {
                     : () async {
                         final result = await showDialogConfirm();
                         if (result ?? false) {
-                          print("Datos da pessoa:: ${widget.user.fotos}");
+                          print("Foto da pessoa:: ${widget.user.docBack}");
                           httpService.sendData(context, widget.user);
                         } else {
                           Message.showInfo(
