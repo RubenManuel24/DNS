@@ -5,7 +5,6 @@ import 'package:torch_controller/torch_controller.dart';
 
 void main() {
   TorchController().initialize();
-  runApp(MyApp());
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
   ]).then((_) {
