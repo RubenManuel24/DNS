@@ -7,7 +7,9 @@ import 'package:EDS/src/ui/loader_animation.dart';
 import 'package:EDS/src/feacture/home/home_scren.dart';
 
 class HttpService {
-  Future<void> sendData(BuildContext context, UserModel user) async {
+
+ Future<void> sendData(BuildContext context, UserModel user) async {
+
     // Exibir o loader antes da requisição
     showDialog(
       context: context,
@@ -16,13 +18,15 @@ class HttpService {
         return const LoaderAnimation(); // Exibir animação de carregamento
       },
     );
+
     try {
+
       // Criar a requisição multipart
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse(
-            'http://172.22.38.16:3333/clientes'), // Substituir pela URL correta
+        Uri.parse('http://172.22.50.55:3333/clientes'), // Substituir pela URL correta
       );
+      
       // Adicionar campos de texto ao formulário
       request.fields['primeiro_nome'] = user.nomeCompleto;
       request.fields['bi_identidade'] = user.numeroBI;
@@ -35,7 +39,6 @@ class HttpService {
       request.fields['local_emissao'] = user.localEmissao;
 
       // Adicionar a foto principal (personFotos) como arquivo
-
       if (user.personFotos.isNotEmpty) {
         request.files.add(
           await http.MultipartFile.fromPath(
@@ -63,8 +66,10 @@ class HttpService {
 
       // Enviar a requisição
       var response = await request.send();
+
       // Fechar o loader após a resposta
       Navigator.pop(context);
+
       if (response.statusCode == 200) {
         Message.showSucess("Dados enviados com sucesso!", context);
         Navigator.push(
@@ -73,9 +78,11 @@ class HttpService {
             builder: (context) => HomeScreen(),
           ),
         );
+
       } else {
         Message.showErro("Falha ao enviar os dados", context);
       }
+
     } catch (e, s) {
       // Fechar o loader em caso de erro
       log(error: e, stackTrace: s, 'Erro encontrado');

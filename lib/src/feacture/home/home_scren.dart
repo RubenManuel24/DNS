@@ -11,6 +11,8 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  var ligth = false;
+
   final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
   late QRViewController controller;
   bool isQRViewOpen = false;
@@ -26,7 +28,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        
         automaticallyImplyLeading: false,
         centerTitle: true,
         backgroundColor: Colors.black,
@@ -56,11 +57,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Image.asset('assets/log/image.png', width: 200, height: 200),
+                    Image.asset('assets/log/image.png',
+                        width: 200, height: 200),
                     const SizedBox(height: 20),
                     const Text(
                       "Clique no botão abaixo para escanear o QR do B.I",
-                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                      style:
+                          TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
@@ -79,6 +82,35 @@ class _HomeScreenState extends State<HomeScreen> {
                   },
                   child: Icon(Icons.close, color: Colors.white),
                   backgroundColor: Colors.red,
+                ),
+              ),
+            ),
+            Positioned(
+              top: 40,
+              left: 20,
+              child: Visibility(
+                visible: isQRViewOpen,
+                child: FloatingActionButton(
+                  onPressed: () async {
+                    if (isQRViewOpen) {
+                      await controller
+                          .toggleFlash(); // Alterna o flash da câmera
+                      bool? flashStatus = await controller
+                          .getFlashStatus(); // Obtém o status atual do flash
+
+                      setState(() {
+                        ligth = flashStatus ??
+                            false; // Atualiza o estado do ícone com o status real
+                      });
+                    }
+                  },
+                  child: Icon(
+                    ligth
+                        ? Icons.flashlight_off_outlined
+                        : Icons.flashlight_on_outlined,
+                    color: Colors.white,
+                  ),
+                  backgroundColor: Colors.black,
                 ),
               ),
             ),
@@ -154,8 +186,6 @@ class _HomeScreenState extends State<HomeScreen> {
             context,
             MaterialPageRoute(builder: (context) => TelaDados(user: user)),
           );
-
-          
         } catch (e) {
           // Fecha o Loader em caso de erro
           if (Navigator.canPop(context)) Navigator.pop(context);

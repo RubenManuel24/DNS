@@ -469,14 +469,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.0"
-  torch_light:
+  torch_controller:
     dependency: "direct main"
     description:
-      name: torch_light
-      sha256: a1397443a375c6991151547cb77361085df6cf8aa59999292e683db7385a0d15
+      name: torch_controller
+      sha256: "14d7ab15e4810b6e64bc5a70d4c4c931c69ffe86f92acb3ec94574c1754def8e"
       url: "https://pub.dev"
     source: hosted
-    version: "1.1.0"
+    version: "2.0.1"
   typed_data:
     dependency: transitive
     description:
